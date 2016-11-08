@@ -1,5 +1,5 @@
 {
-  "name": "react-route-controller",
+  "name": "redux-route-controller",
   "version": "1.0.0",
   "description": "Control your react rendering out side react components. Good for loading code chunks, preloading data and so on",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theseushu/react-route-controller.git"
+    "url": "git+https://github.com/theseushu/redux-route-controller.git"
   },
   "keywords": [
     "react",
@@ -24,9 +24,9 @@
   "author": "Shawn Hu",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/theseushu/react-route-controller/issues"
+    "url": "https://github.com/theseushu/redux-route-controller/issues"
   },
-  "homepage": "https://github.com/theseushu/react-route-controller#readme",
+  "homepage": "https://github.com/theseushu/redux-route-controller#readme",
   "dependencies": {
     "history": "^4.4.0",
     "lodash": "^4.16.6",
