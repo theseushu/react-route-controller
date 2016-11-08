@@ -1,0 +1,53 @@
+{
+  "name": "react-route-controller",
+  "version": "1.0.0",
+  "description": "Control your react rendering out side react components. Good for loading code chunks, preloading data and so on",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theseushu/react-route-controller.git"
+  },
+  "keywords": [
+    "react",
+    "router",
+    "route",
+    "async",
+    "render",
+    "preload",
+    "data",
+    "code",
+    "splitting"
+  ],
+  "author": "Shawn Hu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/theseushu/react-route-controller/issues"
+  },
+  "homepage": "https://github.com/theseushu/react-route-controller#readme",
+  "dependencies": {
+    "history": "^4.4.0",
+    "lodash": "^4.16.6",
+    "path-to-regexp": "^1.6.0",
+    "query-string": "^4.2.3",
+    "react": "^15.0.0",
+    "react-dom": "^15.0.0",
+    "redux": "^3.6.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.18.2",
+    "babel-jest": "^16.0.0",
+    "babel-loader": "^6.2.7",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-plugin-transform-flow-strip-types": "^6.18.0",
+    "babel-polyfill": "^6.16.0",
+    "babel-preset-latest": "^6.16.0",
+    "babel-preset-react": "^6.16.0",
+    "babel-preset-stage-0": "^6.16.0",
+    "babel-register": "^6.18.0",
+    "jest": "^16.0.2",
+    "webpack": "^2.1.0-beta.25"
+  }
+}
