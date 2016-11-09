@@ -34,7 +34,7 @@
     "url": "https://github.com/theseushu/redux-route-controller/issues"
   },
   "homepage": "https://github.com/theseushu/redux-route-controller#readme",
-  "dependencies": {
+  "peerDependencies": {
     "history": "^4.4.0",
     "lodash": "^4.16.6",
     "path-to-regexp": "^1.6.0",
