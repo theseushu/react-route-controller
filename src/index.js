@@ -1,13 +1,16 @@
-import helpers from './helpers';
+import {createStore, replaceReducers} from './helpers';
 import locationRegistry from './locationRegistry';
 import createLocationReducer, { HISTORY_CHANGED, SLICE_NAME } from './createLocationReducer'
 import connectStoreToHistory from './connectStoreToHistory'
 import routeController from './routeController';
 
-export default const routeController;
-export const connectStoreToHistory;
-export const createLocationReducer;
-export const HISTORY_CHANGED;
-export const SLICE_NAME;
-export const locationRegistry;
-export const helpers;
+export default routeController;
+export {
+  connectStoreToHistory,
+  createLocationReducer,
+  HISTORY_CHANGED,
+  SLICE_NAME,
+  locationRegistry,
+  createStore,
+  replaceReducers
+}

@@ -81,10 +81,11 @@ export default class RouteController {
     return this._history;
   }
 
-  replaceConfig(config) {
+  async replaceConfig(config) {
     this._locationRegistry.replaceRoutes(config.routes);
     let { match, miss, error } = config;
     this._globalHandlers = { match, miss, error };
+    await this._run(this._location)
   }
 
   _validateCounter(counter) {
