@@ -3,6 +3,13 @@
   "version": "1.0.0",
   "description": "Control your react rendering out side react components. Good for loading code chunks, preloading data and so on",
   "main": "index.js",
+  "files": [
+    "dist",
+    "lib",
+    "es",
+    "src",
+    "index.d.ts"
+  ],
   "scripts": {
     "test": "jest"
   },
