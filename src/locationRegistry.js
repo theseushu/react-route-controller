@@ -16,25 +16,23 @@ export default class LocationRegistry {
 
   _processConfig = routes => {
     const _routes =  routes.map(route => {
-      let { path, pattern, pre, match, post, error } = route;
-      let result = { pre, match, post, error };
+      let { path, pattern, ...config } = route;
 
       let variables = [];
       let options = {};
       if (pattern && pattern.path) {
-        result.path = pattern.path;
+        path = pattern.path;
         options = pattern.options;
-      } else if (path) {
-        result.path = path;
-      } else {
+      } else if (path == null){
         throw new Error('Path must be defined in route or route.pattern!')
       }
-      const regex = pathToRegexp(result.path, variables, options);
+      const regex = pathToRegexp(path, variables, options);
 
-      result.regex = regex;
-      result.variables = variables;
-
-      return result;
+      return {
+        regex,
+        variables,
+        ...config
+      };
     });
 
     this._routes = _routes;
@@ -45,15 +43,15 @@ export default class LocationRegistry {
     const { pathname, search } = location;
 
     let matchResult;
-    const route = _find(routes, (route) => {
-      matchResult = route.regex.exec(pathname);
+    const matchingRoute = _find(routes, r => {
+      matchResult = r.regex.exec(pathname);
       return matchResult != null
     })
 
-    if (route == null) {
+    if (!matchingRoute) {
       return null;
     } else {
-      const { variables, pre, match, post, error } = route;
+      const { regex, variables, ...routeConfig } = matchingRoute;
       //parse pathVariables from path-to-regexp match result
       let pathVariables = {};
       variables.forEach((variable, i) => {
@@ -61,7 +59,9 @@ export default class LocationRegistry {
       })
       const queryParams = queryString.parse(search)
 
-      return { pathVariables, queryParams, pre, match, post, error };
+      const locationParams = { location, pathVariables, queryParams };
+
+      return { locationParams, route: routeConfig };
     }
   }
 }

@@ -16,13 +16,9 @@ describe('LocationRegistry tests', () => {
   it('should handle match properly', () => {
     const locationRegistry = new LocationRegistry(routes);
 
-    function getHandlers(pathname) {
-      let {pre, match, post, error} = locationRegistry.match({pathname});
-      return {pre, match, post, error}
-    }
-    expect(getHandlers('/')).toEqual({pre: route1.pre, match: route1.match, post: route1.post, error: route1.error})
-    expect(locationRegistry.match({pathname: '/user/2/item/1'}).pathVariables).toEqual({id: '1', userId: '2'})
-    expect(locationRegistry.match({pathname: '/', search: 'name1=value1&name2=value2'}).queryParams).toEqual({name1: 'value1', name2: 'value2'})
+    expect(locationRegistry.match({pathname: '/'}).route).toEqual({match: route1.match, error: route1.error})
+    expect(locationRegistry.match({pathname: '/user/2/item/1'}).locationParams.pathVariables).toEqual({id: '1', userId: '2'})
+    expect(locationRegistry.match({pathname: '/', search: 'name1=value1&name2=value2'}).locationParams.queryParams).toEqual({name1: 'value1', name2: 'value2'})
     expect(locationRegistry.match({pathname: '/user/1'})).toBeNull();
   });
 
@@ -37,9 +33,9 @@ describe('LocationRegistry tests', () => {
       let {pre, match, post, error} = locationRegistry.match({pathname});
       return {pre, match, post, error}
     }
-    expect(getHandlers('/')).toEqual({pre: route1.pre, match: route1.match, post: route1.post, error: route1.error})
-    expect(locationRegistry.match({pathname: '/user/2/item/1'}).pathVariables).toEqual({id: '1', userId: '2'})
-    expect(locationRegistry.match({pathname: '/', search: 'name1=value1&name2=value2'}).queryParams).toEqual({name1: 'value1', name2: 'value2'})
+    expect(locationRegistry.match({pathname: '/'}).route).toEqual({match: route1.match, error: route1.error})
+    expect(locationRegistry.match({pathname: '/user/2/item/1'}).locationParams.pathVariables).toEqual({id: '1', userId: '2'})
+    expect(locationRegistry.match({pathname: '/', search: 'name1=value1&name2=value2'}).locationParams.queryParams).toEqual({name1: 'value1', name2: 'value2'})
     expect(locationRegistry.match({pathname: '/user/1'})).toBeNull();
   });
 })

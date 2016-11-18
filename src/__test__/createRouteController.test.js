@@ -1,14 +1,15 @@
 import createHistory from 'history/createMemoryHistory'
 import { route1, route2, route3 } from './routes';
-import { createStore } from '../helpers'
+import createStore from '../utils/createStore'
+import { RRC, EXECUTION } from '../ducks'
 
-import RouteController from '../routeController';
+import createRouteController from '../createRouteController';
 
-const url1 = '/user/1/item/2?name=value'
+const url = '/user/1/item/2?name=value'
 
 let history, store, location1;
 beforeEach(() => {
-  history = createHistory({initialEntries: [ url1 ]});
+  history = createHistory({initialEntries: [ url ]});
   store = createStore(history);
   location1 = history.location;
 });
@@ -23,9 +24,8 @@ const createHandler = expectation => locationParams => {
 }
 
 describe('Route controller', () => {
-  it('should throw error if store/config is not valid', () => {
-    expect(() => new RouteController({}, config)).toThrow();
-    expect(() => new RouteController(store, {routes: []})).toThrow();
+  it('should throw error if config is not valid', () => {
+    expect(() => createRouteController({routes: []})).toThrow();
   })
   it('should process routes handler', async () => {
     const route = {
@@ -40,15 +40,16 @@ describe('Route controller', () => {
     const routeError = jest.fn()
     const globalMatch = jest.fn()
     const globalMiss = jest.fn()
-    const globalError = jest.fn((err)=>console.log(err))
+    const globalError = jest.fn((err)=>{})
     const config = {
       routes: [Object.assign({}, route, { match: routeMatch })],
       match: globalMatch,
       miss: globalMiss,
       error: globalError
     }
-    rc = new RouteController(store, config);
-    await rc.start();
+    rc = createRouteController(config);
+    await rc.start(store);
+
     expect(routeMatch).toHaveBeenCalledTimes(1);
     expect(routeError).toHaveBeenCalledTimes(0);
     expect(globalMatch).toHaveBeenCalledTimes(0);
@@ -68,15 +69,15 @@ describe('Route controller', () => {
       return 'Match result of route'
     })
     const globalMiss = jest.fn()
-    const globalError = jest.fn((err)=>console.log(err))
+    const globalError = jest.fn((err)=>{})
     const config = {
       routes: [Object.assign({}, route, { })],
       match: globalMatch,
       miss: globalMiss,
       error: globalError
     }
-    rc = new RouteController(store, config);
-    await rc._run(history.location);
+    rc = createRouteController(config);
+    rc.start(store);
     expect(routeMatch).toHaveBeenCalledTimes(0);
     expect(routeError).toHaveBeenCalledTimes(0);
     expect(globalMatch).toHaveBeenCalledTimes(1);
@@ -99,8 +100,8 @@ describe('Route controller', () => {
       miss: globalMiss,
       error: globalError
     }
-    rc = new RouteController(store, config);
-    await rc._run(history.location);
+    rc = createRouteController(config);
+    await rc.start(store);
     expect(routeMatch).toHaveBeenCalledTimes(0);
     expect(routeError).toHaveBeenCalledTimes(0);
     expect(globalMatch).toHaveBeenCalledTimes(0);
@@ -132,8 +133,8 @@ describe('Route controller', () => {
       miss: globalMiss,
       error: globalError
     }
-    rc = new RouteController(store, config);
-    await rc.start();
+    rc = createRouteController(config);
+    const stop = rc.start(store);
 
     expect(routeMatch).toHaveBeenCalledTimes(1);
     expect(routeError).toHaveBeenCalledTimes(1);
@@ -141,6 +142,7 @@ describe('Route controller', () => {
     expect(globalMiss).toHaveBeenCalledTimes(0);
     expect(globalError).toHaveBeenCalledTimes(0);
 
+    stop();
     rc.replaceConfig({
       routes: [Object.assign({}, route, { match: routeMatch })],
       match: globalMatch,
@@ -148,7 +150,8 @@ describe('Route controller', () => {
       error: globalError
     })
 
-    await rc._run(history.location);
+    await rc.start(store);
+
     expect(globalError).toHaveBeenCalledTimes(1);
   })
   it('should response to history', async () => {
@@ -171,13 +174,13 @@ describe('Route controller', () => {
         match: routeMatch2
       }],
     }
-    rc = new RouteController(store, config, history);
-    await rc.start();
+    rc = createRouteController(config, history);
+    await rc.start(store);
 
     expect(routeMatch).toHaveBeenCalledTimes(1);
     expect(routeMatch2).toHaveBeenCalledTimes(0);
 
-    history.push('/'); // in this case, all function calls are sync ( every matchHandler is a sync function )
+    history.push('/') // in this case, all function calls are sync ( every matchHandler is a sync function )
 
     expect(routeMatch).toHaveBeenCalledTimes(1);
     expect(routeMatch2).toHaveBeenCalledTimes(1);
@@ -188,32 +191,85 @@ describe('Route controller', () => {
     }
     let rc;
 
-    const step1 = jest.fn( locationParams => new Promise(resolve => setTimeout(() => resolve('first result'), 100)));
-    const step2 = jest.fn( firstResult => {
-        expect(firstResult).toEqual('first result');
-        return new Promise(resolve => setTimeout(() => resolve('second result'), 100));
-      })
-    const step3 = jest.fn( secondResult => {
-        expect(secondResult).toEqual('second result');
-        return new Promise(resolve => setTimeout(() => resolve('3rd result'), 100));
-      })
-    const routeMatch = [ step1, step2, step3 ];
+    const step1 = jest.fn(async (params, context) => {
+      return 'step1'
+    })
+    const step2 = jest.fn(async (params, context) => {
+      return 'step2'
+    })
+    const routeMatch = [ step1, step2 ];
     const globalMiss = jest.fn();
     const config = {
-      routes: [Object.assign({}, route, { match: routeMatch }), {
-        path: '/'
-      }],
+      routes: [
+        Object.assign({}, route, { match: routeMatch }),
+        {
+          path: '/'
+        }
+      ],
       miss: globalMiss
     }
-    rc = new RouteController(store, config);
-    rc.start();
+    rc = createRouteController(config, history);
+    rc.start(store);
+    await history.push('/')
 
-    await rc._run(history.location);
-    await rc._run({pathname: '/'});
-
-    expect(step1).toHaveBeenCalledTimes(2);
-    expect(step2).toHaveBeenCalledTimes(1);
-    expect(step3).toHaveBeenCalledTimes(1);
+    expect(step1).toHaveBeenCalledTimes(1);
+    expect(step2).toHaveBeenCalledTimes(0);
     expect(globalMiss).toHaveBeenCalledTimes(1);
+  })
+  it('should run with multiple stores ', async () => {
+    const url1 = '/user/2/item/3?name2=value2';
+    const url2 = '/';
+    const url3 = '/users?name3=value3';
+    const history1 = createHistory({initialEntries: [ url ]});
+    const history2 = createHistory({initialEntries: [ url ]});
+    const history3 = createHistory({initialEntries: [ url ]});
+    const store1 = createStore(history1);
+    const store2 = createStore(history2);
+    const store3 = createStore(history3);
+
+    const route1Match = jest.fn((locationParams) => {
+      return 'result1'
+    })
+    const route2Match = jest.fn((locationParams) => {
+      expect(locationParams.pathVariables).toEqual({})
+      expect(locationParams.queryParams).toEqual({ name3: 'value3' })
+      return 'result2'
+    })
+
+    const miss = jest.fn((locationParams) => {
+      return 'missing'
+    })
+    const config = {
+      routes: [
+        {
+          path: '/user/:id/item/:itemId',
+          match: route1Match
+        },
+        {
+          path: '/users',
+          match: route2Match
+        }
+      ],
+      miss: miss
+    }
+    const rc = createRouteController(config);
+    await rc.start(store1);
+    await rc.start(store2);
+    await rc.start(store3);
+
+    expect(route1Match).toHaveBeenCalledTimes(3)
+    expect(route2Match).toHaveBeenCalledTimes(0)
+    expect(miss).toHaveBeenCalledTimes(0)
+
+    await history1.push(url1)
+    await history2.push(url2)
+    await history3.push(url3)
+
+    expect(route1Match).toHaveBeenCalledTimes(4)
+    expect(route2Match).toHaveBeenCalledTimes(1)
+    expect(miss).toHaveBeenCalledTimes(1)
+    expect(store1.getState()[RRC][EXECUTION].state.result).toEqual('result1')
+    expect(store2.getState()[RRC][EXECUTION].state.result).toEqual('missing')
+    expect(store3.getState()[RRC][EXECUTION].state.result).toEqual('result2')
   })
 })

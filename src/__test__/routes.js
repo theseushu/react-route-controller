@@ -1,8 +1,6 @@
 export const route1 = {
   path: '/',
-  pre: (pathVariables, queryParams)=>'pre',
   match: (preResult)=>'match',
-  post: (matchResult)=>'post',
   error: (err)=>'error'
 }
 
