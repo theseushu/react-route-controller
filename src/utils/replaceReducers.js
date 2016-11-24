@@ -1,6 +1,6 @@
 import { combineReducers } from 'redux';
 
-import reducer, { RRC } from './ducks';
+import reducer, { RRC } from '../ducks';
 
 const RRCReducer = {};
 RRCReducer[RRC] = reducer;

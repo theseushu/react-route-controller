@@ -14,15 +14,6 @@ beforeEach(() => {
   location1 = history.location;
 });
 
-const createHandler = expectation => locationParams => {
-  expectation(locationParams).toEqual({
-    location: url
-  })
-  new Promise(resolve => setTimeout(() => {
-     resolve('Pre result of route')
-  }, 200))
-}
-
 describe('Route controller', () => {
   it('should throw error if config is not valid', () => {
     expect(() => createRouteController({routes: []})).toThrow();
@@ -48,13 +39,36 @@ describe('Route controller', () => {
       error: globalError
     }
     rc = createRouteController(config);
-    await rc.start(store);
+    const listener = jest.fn(({done, ...params}) => {
+      if (done) {
+        expect(params).toEqual({result: 'Match result of route'})
+      } else {
+        expect(params).toEqual({
+          locationParams: {
+            location: history.location,
+            pathVariables: {id: '1', itemId: '2'},
+            queryParams: {name: 'value'}
+          }
+        })
+      }
+    });
+    await rc.start(store, listener);
 
     expect(routeMatch).toHaveBeenCalledTimes(1);
     expect(routeError).toHaveBeenCalledTimes(0);
     expect(globalMatch).toHaveBeenCalledTimes(0);
     expect(globalMiss).toHaveBeenCalledTimes(0);
     expect(globalError).toHaveBeenCalledTimes(0);
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenCalledWith({
+      done: false,
+      locationParams: {
+        location: history.location,
+        pathVariables: {id: '1', itemId: '2'},
+        queryParams: {name: 'value'}
+      }
+    });
+    expect(listener).toHaveBeenLastCalledWith({done: true, result: 'Match result of route'});
   })
   it('should process global handler', async () => {
     const route = {
@@ -66,7 +80,7 @@ describe('Route controller', () => {
     const globalMatch = jest.fn( locationParams => {
       expect(locationParams.pathVariables).toEqual({ id: '1', itemId: '2' })
       expect(locationParams.queryParams).toEqual({ name: 'value' })
-      return 'Match result of route'
+      return 'Match result of global'
     })
     const globalMiss = jest.fn()
     const globalError = jest.fn((err)=>{})
@@ -76,13 +90,24 @@ describe('Route controller', () => {
       miss: globalMiss,
       error: globalError
     }
+    const listener = jest.fn();
     rc = createRouteController(config);
-    rc.start(store);
+    await rc.start(store, listener);
     expect(routeMatch).toHaveBeenCalledTimes(0);
     expect(routeError).toHaveBeenCalledTimes(0);
     expect(globalMatch).toHaveBeenCalledTimes(1);
     expect(globalMiss).toHaveBeenCalledTimes(0);
     expect(globalError).toHaveBeenCalledTimes(0);
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenCalledWith({
+      done: false,
+      locationParams: {
+        location: history.location,
+        pathVariables: {id: '1', itemId: '2'},
+        queryParams: {name: 'value'}
+      }
+    });
+    expect(listener).toHaveBeenLastCalledWith({done: true, result: 'Match result of global'});
   })
   it('should process miss handler', async () => {
     let rc;
@@ -90,7 +115,7 @@ describe('Route controller', () => {
     const routeError = jest.fn()
     const globalMatch = jest.fn()
     const globalMiss = jest.fn( locationParams => {
-      return 'Match result of route'
+      return 'Miss result of route'
     })
     const globalError = jest.fn()
     const config = {
@@ -101,12 +126,21 @@ describe('Route controller', () => {
       error: globalError
     }
     rc = createRouteController(config);
-    await rc.start(store);
+    const listener = jest.fn();
+    await rc.start(store, listener);
     expect(routeMatch).toHaveBeenCalledTimes(0);
     expect(routeError).toHaveBeenCalledTimes(0);
     expect(globalMatch).toHaveBeenCalledTimes(0);
     expect(globalMiss).toHaveBeenCalledTimes(1);
     expect(globalError).toHaveBeenCalledTimes(0);
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenCalledWith({
+      done: false,
+      locationParams: {
+        location: history.location
+      }
+    });
+    expect(listener).toHaveBeenLastCalledWith({done: true, result: 'Miss result of route'});
   })
   it('should process right error handler', async () => {
     const route = {
@@ -121,11 +155,13 @@ describe('Route controller', () => {
     })
     const routeError = jest.fn( (err) => {
       expect(err).toEqual(error)
+      return error
     })
     const globalMatch = jest.fn()
     const globalMiss = jest.fn()
     const globalError = jest.fn( (err) => {
-      expect(err).toEqual(error)
+      expect(err).toEqual(error);
+      return error
     })
     const config = {
       routes: [Object.assign({}, route, { match: routeMatch, error: routeError })],
@@ -134,13 +170,16 @@ describe('Route controller', () => {
       error: globalError
     }
     rc = createRouteController(config);
-    const stop = rc.start(store);
+    const listener = jest.fn();
+    const stop = await rc.start(store, listener);
 
     expect(routeMatch).toHaveBeenCalledTimes(1);
     expect(routeError).toHaveBeenCalledTimes(1);
     expect(globalMatch).toHaveBeenCalledTimes(0);
     expect(globalMiss).toHaveBeenCalledTimes(0);
     expect(globalError).toHaveBeenCalledTimes(0);
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenLastCalledWith({done: true, error});
 
     stop();
     rc.replaceConfig({
@@ -150,9 +189,11 @@ describe('Route controller', () => {
       error: globalError
     })
 
-    await rc.start(store);
+    await rc.start(store, listener);
 
     expect(globalError).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledTimes(4);
+    expect(listener).toHaveBeenLastCalledWith({done: true, error});
   })
   it('should response to history', async () => {
     let rc;
@@ -175,15 +216,20 @@ describe('Route controller', () => {
       }],
     }
     rc = createRouteController(config, history);
-    await rc.start(store);
+    const listener = jest.fn();
+    await rc.start(store, listener);
 
     expect(routeMatch).toHaveBeenCalledTimes(1);
     expect(routeMatch2).toHaveBeenCalledTimes(0);
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenLastCalledWith({done: true});
 
-    history.push('/') // in this case, all function calls are sync ( every matchHandler is a sync function )
+    await history.push('/') // in this case, all function calls are sync ( every matchHandler is a sync function )
 
     expect(routeMatch).toHaveBeenCalledTimes(1);
     expect(routeMatch2).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledTimes(4);
+    expect(listener).toHaveBeenLastCalledWith({done: true});
   })
   it('should skip some match functions when a new route starts to run', async () => {
     const route = {
@@ -209,14 +255,18 @@ describe('Route controller', () => {
       miss: globalMiss
     }
     rc = createRouteController(config, history);
-    rc.start(store);
+    const listener = jest.fn();
+    rc.start(store, listener);
+    expect(listener).toHaveBeenCalledTimes(1);
     await history.push('/')
 
     expect(step1).toHaveBeenCalledTimes(1);
     expect(step2).toHaveBeenCalledTimes(0);
     expect(globalMiss).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledTimes(4);
+    expect(listener).toHaveBeenLastCalledWith({done: true});
   })
-  it('should run with multiple stores ', async () => {
+  it('should run with multiple stores', async () => {
     const url1 = '/user/2/item/3?name2=value2';
     const url2 = '/';
     const url3 = '/users?name3=value3';
@@ -252,24 +302,36 @@ describe('Route controller', () => {
       ],
       miss: miss
     }
-    const rc = createRouteController(config);
-    await rc.start(store1);
-    await rc.start(store2);
-    await rc.start(store3);
+    try {
+      const rc = createRouteController(config);
+      const listener1 = jest.fn();
+      const listener2 = jest.fn();
+      const listener3 = jest.fn();
+      await rc.start(store1, listener1);
+      await rc.start(store2, listener2);
+      await rc.start(store3, listener3);
 
-    expect(route1Match).toHaveBeenCalledTimes(3)
-    expect(route2Match).toHaveBeenCalledTimes(0)
-    expect(miss).toHaveBeenCalledTimes(0)
+      expect(route1Match).toHaveBeenCalledTimes(3)
+      expect(route2Match).toHaveBeenCalledTimes(0)
+      expect(miss).toHaveBeenCalledTimes(0)
 
-    await history1.push(url1)
-    await history2.push(url2)
-    await history3.push(url3)
-
-    expect(route1Match).toHaveBeenCalledTimes(4)
-    expect(route2Match).toHaveBeenCalledTimes(1)
-    expect(miss).toHaveBeenCalledTimes(1)
-    expect(store1.getState()[RRC][EXECUTION].state.result).toEqual('result1')
-    expect(store2.getState()[RRC][EXECUTION].state.result).toEqual('missing')
-    expect(store3.getState()[RRC][EXECUTION].state.result).toEqual('result2')
+      await history1.push(url1)
+      await history2.push(url2)
+      await history3.push(url3)
+      expect(route1Match).toHaveBeenCalledTimes(4)
+      expect(route2Match).toHaveBeenCalledTimes(1)
+      expect(miss).toHaveBeenCalledTimes(1)
+      expect(store1.getState()[RRC][EXECUTION].state.result).toEqual('result1')
+      expect(store2.getState()[RRC][EXECUTION].state.result).toEqual('missing')
+      expect(store3.getState()[RRC][EXECUTION].state.result).toEqual('result2')
+      expect(listener1).toHaveBeenCalledTimes(4)
+      expect(listener1).toHaveBeenLastCalledWith({done: true, result: 'result1'});
+      expect(listener2).toHaveBeenCalledTimes(4)
+      expect(listener2).toHaveBeenLastCalledWith({done: true, result: 'missing'});
+      expect(listener3).toHaveBeenCalledTimes(4)
+      expect(listener3).toHaveBeenLastCalledWith({done: true, result: 'result2'});
+    } catch (error) {
+      console.log(error)
+    }
   })
 })

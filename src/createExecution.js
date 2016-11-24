@@ -2,24 +2,21 @@ import _isPlainObject from 'lodash/isPlainObject';
 import _isArray from 'lodash/isArray';
 import _isFunction from 'lodash/isFunction';
 import _last from 'lodash/last';
-import convertObjectToAsyncFunction from './utils/convertObjectToAsyncFunction'
-import entries from 'lodash/entries';
-import { RRC, LOCATION, EXECUTION, startExecution, doneExecution,
-  error as createErrorAction, redirect as redirectAction, cancel as createCancelAction } from './ducks'
+import convertObjectToAsyncFunction from './utils/convertObjectToAsyncFunction';
 
 let key = 1;
 function createKey() {
   return key++;
 }
 
-export default function createExecution(store, config, enhancer) {
+export default function createExecution(config, listener, enhancer) {
 
   if (typeof enhancer !== 'undefined') {
     if (typeof enhancer !== 'function') {
       throw new Error('Expected the enhancer to be a function.')
     }
 
-    return enhancer(createExecution)(store, config)
+    return enhancer(createExecution)(config);
   }
 
   let finished = false;
@@ -68,17 +65,7 @@ export default function createExecution(store, config, enhancer) {
   }
 
   async function exe() {
-    // console.log(store.getState())
-    store.dispatch(startExecution(executionKey))
-    const unsubscribe = store.subscribe(() => {
-      let executionState = store.getState()[RRC][EXECUTION];
-      if (executionState.key !== executionKey ) {
-        unsubscribe();
-        cancel();
-      } else if (executionState.done) {
-        unsubscribe();
-      }
-    })
+    _emit('onStart', execution, config.locationParams);
     const { steps, errorHandler } = schedule(config);
 
 
@@ -93,35 +80,44 @@ export default function createExecution(store, config, enhancer) {
       }
       if(finished)
         return;
-      store.dispatch(doneExecution(executionKey, _last(context.stepResults)));
+      done(_last(context.stepResults));
     } catch (err) {
       if (typeof errorHandler=== 'function' && !finished) {
         err = await errorHandler(err);
       }
-      store.dispatch(createErrorAction(executionKey, err));
+      _emit('onError', execution, err);
     } finally {
-      unsubscribe();
+
+    }
+  }
+
+  function _emit(type, ...params) {
+    if (listener && _isFunction(listener[type])) {
+      listener[type](...params)
     }
   }
 
   function done(result) {
     finished = true;
-    store.dispatch(doneExecution(executionKey, result));
+    _emit('onDone', execution, result);
   }
 
   function redirect(path) {
     finished = true;
-    store.dispatch(redirectAction(executionKey, path));
+    _emit('onRedirect', execution, path);
   }
 
   function cancel() {
     finished = true;
-    store.dispatch(createCancelAction(executionKey))
+    _emit('onCancel', execution);
   }
 
-  return {
+  const execution = {
+    key,
     schedule,
     createContext,
-    exe
+    exe,
+    cancel
   }
+  return execution;
 }

@@ -2,7 +2,7 @@
   "name": "redux-route-controller",
   "version": "1.0.0",
   "description": "Control your react rendering out side react components. Good for loading code chunks, preloading data and so on",
-  "main": "src/index.js",
+  "main": "lib/index.js",
   "files": [
     "dist",
     "lib",
@@ -40,8 +40,7 @@
     "query-string": "^4.2.3",
     "react": "^15.0.0",
     "react-dom": "^15.0.0",
-    "redux": "^3.6.0",
-    "rxjs": "^5.0.0-rc.2"
+    "redux": "^3.6.0"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",
@@ -59,6 +58,7 @@
     "webpack": "^2.1.0-beta.25"
   },
   "jest": {
-    "rootDir": "src"
+    "rootDir": "src",
+    "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(js|jsx)$"
   }
 }

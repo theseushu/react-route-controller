@@ -1,4 +1,3 @@
-import _cloneDeep from 'lodash/cloneDeep';
 import { combineReducers } from 'redux';
 
 // actions

@@ -3,16 +3,35 @@ import createStore from '../utils/createStore';
 
 import createExecution from '../createExecution';
 
-import { RRC, EXECUTION } from '../ducks'
+import { RRC, EXECUTION, startExecution, doneExecution,
+  error as createErrorAction, redirect as createRedirectAction, cancel as createCancelAction } from '../ducks'
 
 
-let history, store;
+let history, store, listener;
 
 beforeEach(() => {
 
   history = createHistory({});
   store = createStore(history);
+  listener = {
+    onStart: (execution) => {
+      store.dispatch(startExecution(execution.key));
+    },
+    onDone: (execution, result) => {
+      store.dispatch(doneExecution(execution.key, result));
+    },
+    onError: (execution, err) => {
+      store.dispatch(createErrorAction(execution.key, err));
+    },
+    onCancel: (execution) => {
+      store.dispatch(createCancelAction(execution.key))
+    },
+    onRedirect: (execution, redirect) => {
+      store.dispatch(createRedirectAction(execution.key, redirect));
+    }
+  }
 });
+
 
 describe('createExecution', () => {
   it('creates an execution sequence and execute it', async () => {
@@ -57,7 +76,7 @@ describe('createExecution', () => {
         ]
       }
     }
-    await createExecution(store, config).exe()
+    await createExecution(config, listener).exe()
     expect(step1).toHaveBeenCalledTimes(1)
     expect(step2First).toHaveBeenCalledTimes(1)
     expect(step2Second).toHaveBeenCalledTimes(1)
@@ -88,7 +107,7 @@ describe('createExecution', () => {
         ]
       }
     }
-    await createExecution(store, config).exe()
+    await createExecution(config, listener).exe()
     expect(step1done).toHaveBeenCalledTimes(1)
     expect(step2).toHaveBeenCalledTimes(0)
     expect(store.getState()[RRC][EXECUTION].state.result).toEqual('stop execution now')
@@ -106,7 +125,7 @@ describe('createExecution', () => {
         ]
       }
     }
-    await createExecution(store, config).exe()
+    await createExecution(config, listener).exe()
     expect(step1cancel).toHaveBeenCalledTimes(1)
     expect(step2).toHaveBeenCalledTimes(0)
     expect(store.getState()[RRC][EXECUTION].state.cancelled).toEqual(true)
@@ -124,7 +143,7 @@ describe('createExecution', () => {
         ]
       }
     }
-    await createExecution(store, config).exe()
+    await createExecution(config, listener).exe()
     expect(step1redirect).toHaveBeenCalledTimes(1)
     expect(step2).toHaveBeenCalledTimes(0)
     expect(store.getState()[RRC][EXECUTION].state.redirect).toEqual('///')
@@ -150,9 +169,22 @@ describe('createExecution', () => {
         ]
       }
     }
-    createExecution(store, config).exe()
+    listener.onStart = (execution) => {
+      const unsubscribe = store.subscribe(() => {
+        let executionState = store.getState()[RRC][EXECUTION];
+        if (executionState.key !== execution.key ) {
+          unsubscribe();
+          execution.cancel();
+        } else if (executionState.done) {
+          unsubscribe();
+        }
+      })
+      store.dispatch(startExecution(execution.key));
+    };
+    createExecution(config, listener).exe();
+
     let executionKey = store.getState()[RRC][EXECUTION].key;
-    await createExecution(store, config).exe()
+    await createExecution(config, listener).exe()
     expect(step1).toHaveBeenCalledTimes(2)
     expect(step2).toHaveBeenCalledTimes(1)
     expect(store.getState()[RRC][EXECUTION].key).toEqual(executionKey + 1)
@@ -176,7 +208,7 @@ describe('createExecution', () => {
       miss,
       match: globalMatch
     }
-    await createExecution(store, config).exe()
+    await createExecution(config, listener).exe()
     expect(routeMatch).toHaveBeenCalledTimes(1)
     expect(globalMatch).toHaveBeenCalledTimes(0)
     expect(routeError).toHaveBeenCalledTimes(0)
@@ -191,7 +223,7 @@ describe('createExecution', () => {
       miss,
       match: globalMatch
     }
-    await createExecution(store, config).exe()
+    await createExecution(config, listener).exe()
     expect(routeMatch).toHaveBeenCalledTimes(1)
     expect(globalMatch).toHaveBeenCalledTimes(1)
     expect(routeError).toHaveBeenCalledTimes(0)
@@ -221,7 +253,7 @@ describe('createExecution', () => {
       },
       error: globalError,
     }
-    await createExecution(store, config).exe()
+    await createExecution(config, listener).exe()
     expect(routeMatch).toHaveBeenCalledTimes(1)
     expect(routeError).toHaveBeenCalledTimes(1)
     expect(globalError).toHaveBeenCalledTimes(0)
@@ -234,7 +266,7 @@ describe('createExecution', () => {
       },
       error: globalError,
     }
-    await createExecution(store, config).exe()
+    await createExecution(config, listener).exe()
     expect(routeMatch).toHaveBeenCalledTimes(2)
     expect(routeError).toHaveBeenCalledTimes(1)
     expect(globalError).toHaveBeenCalledTimes(1)
@@ -262,7 +294,7 @@ describe('createExecution', () => {
       miss,
       error: globalError,
     }
-    await createExecution(store, config).exe()
+    await createExecution(config, listener).exe()
     expect(miss).toHaveBeenCalledTimes(1)
     expect(globalError).toHaveBeenCalledTimes(1)
     expect(store.getState()[RRC][EXECUTION].state.done).toEqual(true)
