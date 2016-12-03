@@ -302,36 +302,32 @@ describe('Route controller', () => {
       ],
       miss: miss
     }
-    try {
-      const rc = createRouteController(config);
-      const listener1 = jest.fn();
-      const listener2 = jest.fn();
-      const listener3 = jest.fn();
-      await rc.start(store1, listener1);
-      await rc.start(store2, listener2);
-      await rc.start(store3, listener3);
+    const rc = createRouteController(config);
+    const listener1 = jest.fn();
+    const listener2 = jest.fn();
+    const listener3 = jest.fn();
+    await rc.start(store1, listener1);
+    await rc.start(store2, listener2);
+    await rc.start(store3, listener3);
 
-      expect(route1Match).toHaveBeenCalledTimes(3)
-      expect(route2Match).toHaveBeenCalledTimes(0)
-      expect(miss).toHaveBeenCalledTimes(0)
+    expect(route1Match).toHaveBeenCalledTimes(3)
+    expect(route2Match).toHaveBeenCalledTimes(0)
+    expect(miss).toHaveBeenCalledTimes(0)
 
-      await history1.push(url1)
-      await history2.push(url2)
-      await history3.push(url3)
-      expect(route1Match).toHaveBeenCalledTimes(4)
-      expect(route2Match).toHaveBeenCalledTimes(1)
-      expect(miss).toHaveBeenCalledTimes(1)
-      expect(store1.getState()[RRC][EXECUTION].state.result).toEqual('result1')
-      expect(store2.getState()[RRC][EXECUTION].state.result).toEqual('missing')
-      expect(store3.getState()[RRC][EXECUTION].state.result).toEqual('result2')
-      expect(listener1).toHaveBeenCalledTimes(4)
-      expect(listener1).toHaveBeenLastCalledWith({done: true, result: 'result1'});
-      expect(listener2).toHaveBeenCalledTimes(4)
-      expect(listener2).toHaveBeenLastCalledWith({done: true, result: 'missing'});
-      expect(listener3).toHaveBeenCalledTimes(4)
-      expect(listener3).toHaveBeenLastCalledWith({done: true, result: 'result2'});
-    } catch (error) {
-      console.log(error)
-    }
+    await history1.push(url1)
+    await history2.push(url2)
+    await history3.push(url3)
+    expect(route1Match).toHaveBeenCalledTimes(4)
+    expect(route2Match).toHaveBeenCalledTimes(1)
+    expect(miss).toHaveBeenCalledTimes(1)
+    expect(store1.getState()[RRC][EXECUTION].state.done).toEqual(true)
+    expect(store2.getState()[RRC][EXECUTION].state.done).toEqual(true)
+    expect(store3.getState()[RRC][EXECUTION].state.done).toEqual(true)
+    expect(listener1).toHaveBeenCalledTimes(4)
+    expect(listener1).toHaveBeenLastCalledWith({done: true, result: 'result1'});
+    expect(listener2).toHaveBeenCalledTimes(4)
+    expect(listener2).toHaveBeenLastCalledWith({done: true, result: 'missing'});
+    expect(listener3).toHaveBeenCalledTimes(4)
+    expect(listener3).toHaveBeenLastCalledWith({done: true, result: 'result2'});
   })
 })

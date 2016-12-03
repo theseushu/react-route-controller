@@ -36,7 +36,7 @@ function createExecutionListener(store, listener) {
     },
     onDone: (execution, result) => {
       unsubscribeStore();
-      store.dispatch(doneExecution(execution.key, result));
+      store.dispatch(doneExecution(execution.key));
       process({done: true, result});
     },
     onError: (execution, err) => {
@@ -103,7 +103,7 @@ export default function createRouteController(config) {
       }
     }
     const executionListener = createExecutionListener(store, listener);
-    createExecution(config, executionListener).exe();
+    createExecution(config, executionListener, {store}).exe();
   }
 
   function replaceConfig({ routes, ...globalConfig }) {

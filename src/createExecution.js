@@ -4,23 +4,16 @@ import _isFunction from 'lodash/isFunction';
 import _last from 'lodash/last';
 import convertObjectToAsyncFunction from './utils/convertObjectToAsyncFunction';
 
-let key = 1;
+const INITIAL_KEY = 1;
+let _key = INITIAL_KEY;
 function createKey() {
-  return key++;
+  return _key++;
 }
 
-export default function createExecution(config, listener, enhancer) {
-
-  if (typeof enhancer !== 'undefined') {
-    if (typeof enhancer !== 'function') {
-      throw new Error('Expected the enhancer to be a function.')
-    }
-
-    return enhancer(createExecution)(config);
-  }
+export default function createExecution(config, listener, extra) {
 
   let finished = false;
-  const executionKey = createKey();
+  const key = createKey();
   /**
    * result schedule must be an iterable of async or sync functions
    **/
@@ -60,7 +53,9 @@ export default function createExecution(config, listener, enhancer) {
       done,
       cancel,
       redirect,
-      stepResults: []
+      stepResults: [],
+      extra,
+      first: (key === INITIAL_KEY) // is it the first run
     }
   }
 

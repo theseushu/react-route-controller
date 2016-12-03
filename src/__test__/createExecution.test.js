@@ -38,8 +38,13 @@ describe('createExecution', () => {
     const locationParams = {
       location: history.location
     }
+    const extraParams = {
+      a: 'a',
+      b: 'b'
+    }
     const step1 = jest.fn(async (params, context) => {
       expect(params).toEqual(context.locationParams)
+      expect(extraParams).toEqual(context.extra)
       let { location, pathVariables, queryParams } = context.locationParams
       expect(location).toEqual(history.location)
       return 'step1'
@@ -76,7 +81,7 @@ describe('createExecution', () => {
         ]
       }
     }
-    await createExecution(config, listener).exe()
+    await createExecution(config, listener, extraParams).exe()
     expect(step1).toHaveBeenCalledTimes(1)
     expect(step2First).toHaveBeenCalledTimes(1)
     expect(step2Second).toHaveBeenCalledTimes(1)
