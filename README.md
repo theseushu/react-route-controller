@@ -1,2 +1,3 @@
 # redux-route-controller
-Control your react rendering out side react components. Good for loading code chunks, preloading data and so on
+I'm currently working on 'ui' branch to set up basic outfits for most pages
+Hoping to get it done before Dec, 8th
